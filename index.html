@@ -144,6 +144,39 @@
         #scan-status { color:white; margin-top:10px; font-weight:bold; text-shadow:0 1px 3px black; background:rgba(0,0,0,0.5); padding:5px 10px; border-radius:10px; }
         #prog-bar { width:60%; height:6px; background:rgba(255,255,255,0.3); border-radius:10px; margin-top:10px; overflow:hidden; display:none; }
         #prog-fill { width:0%; height:100%; background:var(--success); transition:width 0.1s linear; }
+        
+        /* Upload Card Style like Screenshot */
+.upload-thumb-box {
+    width: 100%; height: 90px;
+    background: #57606f; /* Dark Grey background */
+    border-radius: 12px;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    position: relative;
+    color: white;
+}
+
+.upload-spinner {
+    border: 3px solid rgba(255,255,255,0.3);
+    border-top: 3px solid #ffffff;
+    border-radius: 50%;
+    width: 25px; height: 25px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 5px;
+}
+
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+.upload-text { font-size: 12px; font-weight: bold; }
+
+/* Move Modal Folder Item Style */
+.move-item {
+    padding: 10px; border-radius: 8px; background: var(--bg);
+    cursor: pointer; display: flex; align-items: center; gap: 10px;
+    box-shadow: 3px 3px 6px #a3b1c6, -3px -3px 6px #ffffff;
+    font-size: 13px; font-weight: bold; color: var(--text);
+}
+.move-item:active { box-shadow: inset 2px 2px 5px #a3b1c6, inset -2px -2px 5px #ffffff; }
     </style>
 </head>
 <body>
@@ -212,10 +245,19 @@
         <div class="fab-container">
             <input type="file" id="file-in" hidden multiple onchange="window.uploadFilesXHR(this)">
             <div id="sel-actions" style="display:none; gap:10px; flex-direction:column;">
-                <button class="neu-btn fab" style="color:var(--danger);" onclick="window.openPopup('confirm','Delete selected?', 'warning', window.deleteSelected)"><i class="fas fa-trash"></i></button>
-                <button class="neu-btn fab" style="color:var(--success);" onclick="window.downloadSelected()"><i class="fas fa-download"></i></button>
-                <button class="neu-btn fab" onclick="window.openModal('share-modal')"><i class="fas fa-paper-plane"></i></button>
-            </div>
+    <!-- আগের ডিলিট বাটন -->
+    <button class="neu-btn fab" style="color:var(--danger);" onclick="window.openPopup('confirm','Delete selected?', 'warning', window.deleteSelected)"><i class="fas fa-trash"></i></button>
+    
+    <!-- NEW: Move Button -->
+    <button class="neu-btn fab" style="color:#0fb9b1;" onclick="window.openMoveModal()"><i class="fas fa-dolly"></i></button>
+    
+    <!-- NEW: Details Button -->
+    <button class="neu-btn fab" style="color:#4b7bec;" onclick="window.showDetails()"><i class="fas fa-info-circle"></i></button>
+
+    <!-- আগের ডাউনলোড ও শেয়ার বাটন -->
+    <button class="neu-btn fab" style="color:var(--success);" onclick="window.downloadSelected()"><i class="fas fa-download"></i></button>
+    <button class="neu-btn fab" onclick="window.openModal('share-modal')"><i class="fas fa-paper-plane"></i></button>
+</div>
             <button class="neu-btn fab" style="color:#f7b731;" onclick="window.openModal('folder-modal')"><i class="fas fa-folder-plus"></i></button>
             <button class="neu-btn fab" onclick="document.getElementById('file-in').click()"><i class="fas fa-cloud-upload-alt"></i></button>
         </div>
@@ -269,13 +311,44 @@
     <div id="chat-modal" class="modal-overlay"><div class="modal neu-box" style="width:350px; padding:15px;"><h3>Storage Support</h3><div id="chat-msgs" class="neu-inset"></div><div style="display:flex; gap:5px; margin-top:10px;"><input id="chat-in" class="neu-inset neu-input" placeholder="Type here..."><button class="neu-btn" style="width:50px;" onclick="window.sendChat()"><i class="fas fa-paper-plane"></i></button></div><button class="neu-btn" style="width:100%; margin-top:10px;" onclick="window.closeModal('chat-modal')">Close</button></div></div>
     <div id="notif-modal" class="modal-overlay"><div class="modal neu-box"><h3>Inbox</h3><div id="notif-list" style="max-height:200px; overflow-y:auto; text-align:left;"></div><button class="neu-btn" style="width:100%; margin-top:20px;" onclick="window.closeModal('notif-modal')">Close</button></div></div>
 
+<!-- DETAILS MODAL -->
+<div id="details-modal" class="modal-overlay">
+    <div class="modal neu-box" style="text-align:left;">
+        <h3 style="text-align:center; margin-bottom:15px; color:var(--accent);">File Details</h3>
+        <div id="det-content" style="font-size:13px; color:#555; line-height:1.6;"></div>
+        <button class="neu-btn" style="width:100%; margin-top:20px;" onclick="window.closeModal('details-modal')">Close</button>
+    </div>
+</div>
+
+<!-- MOVE MODAL -->
+<div id="move-modal" class="modal-overlay">
+    <div class="modal neu-box">
+        <h3>Move to...</h3>
+        <div id="folder-list" class="neu-inset" style="height:200px; overflow-y:auto; margin-top:15px; padding:10px; display:flex; flex-direction:column; gap:8px;">
+            <!-- Folders will load here -->
+        </div>
+        <button class="neu-btn" style="width:100%; margin-top:15px;" onclick="window.closeModal('move-modal')">Cancel</button>
+    </div>
+</div>
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getDatabase, ref, set, push, onValue, update, remove, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    const config = { apiKey:"AIzaSyCVdE_D4zcQbv-ifeVAaP_XTn3aLHNSctk", authDomain:"minidrive-49a74.firebaseapp.com", databaseURL:"https://minidrive-49a74-default-rtdb.firebaseio.com", projectId:"minidrive-49a74", storageBucket:"minidrive-49a74.firebasestorage.app", messagingSenderId:"582882194063", appId:"1:582882194063:web:1d8e81d789e64e9fe2b6fa" };
-    const app = initializeApp(config); const auth = getAuth(app); const db = getDatabase(app);
+const firebaseConfig = {
+    apiKey: "AIzaSyCKcegYgu1v3zH6G3wNivJCt2-p23XrRuw",
+    authDomain: "drive-1c329.firebaseapp.com",
+    databaseURL: "https://drive-1c329-default-rtdb.firebaseio.com",
+    projectId: "drive-1c329",
+    storageBucket: "drive-1c329.appspot.com",
+    messagingSenderId: "730477611624",
+    appId: "1:730477611624:web:95f90d5753a7a28ebb89dd"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
     const DEF_CLOUD="dhfbdy7rq", DEF_PRESET="MiniDrive";
     let curUser=null, myUID="", selFiles=new Set(), curFold='root', foldPath=[{id:'root',name:'Home'}];
     let popupCb = null;
@@ -298,47 +371,327 @@
         p.style.display='flex';
     };
 
-    window.toggleAuth=(m)=>{ document.getElementById('login-form').style.display=m==='login'?'block':'none'; document.getElementById('signup-form').style.display=m==='signup'?'block':'none'; };
+    window.toggleAuth = (mode) => {
+    const loginForm = document.getElementById('login-form');
+    const signupForm = document.getElementById('signup-form');
+
+    if (mode === 'login') {
+        loginForm.style.display = 'block';
+        signupForm.style.display = 'none';
+    } else if (mode === 'signup') {
+        loginForm.style.display = 'none';
+        signupForm.style.display = 'block';
+    }
+};
     window.openModal=id=>document.getElementById(id).style.display='flex'; 
     window.closeModal=id=>document.getElementById(id).style.display='none';
 
     // AUTH
     onAuthStateChanged(auth, u=>{ if(u){ curUser=u; init(); } else{ document.getElementById('auth-screen').style.display='flex'; document.getElementById('dashboard').style.display='none'; } });
-    window.login=async()=>{ try{ await signInWithEmailAndPassword(auth, document.getElementById('l-email').value, document.getElementById('l-pass').value); } catch(e){ window.openPopup('alert', parseError(e.message), 'error'); } };
-    function parseError(msg) { if(msg.includes("user-not-found")) return "User not found"; if(msg.includes("wrong-password")) return "Wrong Password"; return msg; }
+    window.login = async () => {
+    const email = document.getElementById('l-email').value;
+    const pass = document.getElementById('l-pass').value;
+
+    try {
+        await signInWithEmailAndPassword(auth, email, pass);
+    } catch (e) {
+        window.openPopup('alert', parseError(e.message), 'error');
+    }
+};
     
     // FACE SCAN
-    window.startCam=async()=>{
-        const n=document.getElementById('r-name').value, p=document.getElementById('r-pass').value, e=document.getElementById('r-email').value;
-        if(!n||!p||!e) return window.openPopup('alert',"Fill all fields",'error');
-        document.getElementById('s-inputs').style.display='none'; document.getElementById('cam-box').style.display='block'; document.getElementById('cancel-scan').style.display='block';
-        const s = await navigator.mediaDevices.getUserMedia({video:true}); document.getElementById('webcam').srcObject = s; analyzeFace();
-    };
-    function analyzeFace() {
-        const video=document.getElementById('webcam'), canvas=document.getElementById('scan-canvas'), ctx=canvas.getContext('2d'), status=document.getElementById('scan-status'), frame=document.getElementById('face-frame'), bar=document.getElementById('prog-bar'), fill=document.getElementById('prog-fill');
-        let progress = 0;
-        const scanInterval = setInterval(() => {
-            if(video.readyState===video.HAVE_ENOUGH_DATA) {
-                canvas.width=video.videoWidth; canvas.height=video.videoHeight; ctx.drawImage(video,0,0,canvas.width,canvas.height);
-                const fd=ctx.getImageData(canvas.width/2-20,canvas.height/2-20,40,40);
-                let r=0, g=0, b=0; for(let i=0;i<fd.data.length;i+=4){r+=fd.data[i];g+=fd.data[i+1];b+=fd.data[i+2];}
-                if(Math.floor((r+g+b)/(fd.data.length/4*3))<40){ status.innerText="Too Dark!"; status.style.color="#eb3b5a"; frame.className="face-frame error"; }
-                else{ status.innerText="Scanning..."; status.style.color="#20bf6b"; frame.className="face-frame valid"; bar.style.display="block"; progress+=1.5; fill.style.width=progress+"%"; if(progress>=100){ clearInterval(scanInterval); status.innerText="Processing..."; uploadFace(canvas); }}
+    window.startCam = async () => {
+    const name = document.getElementById('r-name').value;
+    const email = document.getElementById('r-email').value;
+    const pass = document.getElementById('r-pass').value;
+
+    if (!name || !email || !pass) return window.openPopup('alert', 'Fill all fields', 'error');
+
+    document.getElementById('s-inputs').style.display = 'none';
+    document.getElementById('cam-box').style.display = 'block';
+    document.getElementById('cancel-scan').style.display = 'block';
+
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    const video = document.getElementById('webcam');
+    video.srcObject = stream;
+
+    analyzeFace(video, name, email, pass);
+};
+
+async function analyzeFace(video, name, email, pass) {
+    const canvas = document.getElementById('scan-canvas');
+    const ctx = canvas.getContext('2d');
+    const status = document.getElementById('scan-status');
+    const bar = document.getElementById('prog-bar');
+    const fill = document.getElementById('prog-fill');
+    let progress = 0;
+
+    const interval = setInterval(async () => {
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            progress += 2;
+            bar.style.display = 'block';
+            fill.style.width = progress + '%';
+            status.innerText = "Scanning...";
+
+            if (progress >= 100) {
+                clearInterval(interval);
+                status.innerText = "Uploading...";
+                await uploadFace(canvas, name, email, pass);
             }
-        },50);
+        }
+    }, 50);
+}
+
+async function uploadFace(canvas, name, email, pass) {
+    const blob = await (await fetch(canvas.toDataURL('image/jpeg'))).blob();
+    const fd = new FormData();
+    fd.append('file', blob);
+    fd.append('upload_preset', 'MiniDrive');  // তোমার preset
+    fd.append('folder', 'faces');
+
+    try {
+        const res = await fetch('https://api.cloudinary.com/v1_1/dhfbdy7rq/upload', { method: 'POST', body: fd });
+        const data = await res.json();
+        createAcc(data.secure_url, name, email, pass);
+    } catch (e) {
+        window.openPopup('alert', 'Face upload failed', 'error');
     }
-    async function uploadFace(canvas){
-        const b=await(await fetch(canvas.toDataURL('image/jpeg'))).blob(), fd=new FormData(); fd.append('file',b); fd.append('upload_preset',DEF_PRESET);
-        try{ const r=await fetch(`https://api.cloudinary.com/v1_1/${DEF_CLOUD}/upload`,{method:'POST',body:fd}); const d=await r.json(); createAcc(d.secure_url); } catch(e){ window.openPopup('alert',"Error",'error',()=>location.reload()); }
+}
+
+async function createAcc(faceUrl, name, email, pass) {
+    try {
+        const cred = await createUserWithEmailAndPassword(auth, email, pass);
+        const uid = cred.user.uid;
+        const customUID = `TD${Math.floor(Math.random() * 90000000 + 10000000)}${name.slice(0, 2).toUpperCase()}`;
+
+        await set(ref(db, `users/${uid}`), {
+            name,
+            email,
+            faceUrl,
+            customUID,
+            storageLimitGB: 15,
+            usedStorageBytes: 0
+        });
+
+        await set(ref(db, `uid_map/${customUID}`), uid);
+        location.reload();
+    } catch (e) {
+        window.openPopup('alert', parseError(e.message), 'error');
     }
-    async function createAcc(face){
-        const e=document.getElementById('r-email').value, p=document.getElementById('r-pass').value, n=document.getElementById('r-name').value;
-        const cid=`TD${Math.floor(Math.random()*90000000+10000000)}${n.slice(0,2).toUpperCase()}`;
-        try{ const c=await createUserWithEmailAndPassword(auth,e,p); await set(ref(db,`users/${c.user.uid}`),{name:n,email:e,customUID:cid,faceUrl:face,storageLimitGB:15,usedStorageBytes:0}); await set(ref(db,`uid_map/${cid}`),c.user.uid); location.reload(); } catch(e){ window.openPopup('alert',parseError(e.message),'error'); }
+}
+
+window.uploadFilesXHR = async (input) => {
+    const files = input.files;
+    if (!files || files.length === 0) return;
+
+    // ইউজারকে জানানো
+    window.openPopup('info', `Starting upload for ${files.length} files...`, 'info');
+
+    const grid = document.getElementById('file-grid');
+
+    // Array.from ব্যবহার করে লুপ চালানো হচ্ছে যাতে প্যারালাল (একসাথে) আপলোড হয়
+    Array.from(files).forEach(async (file, i) => {
+        
+        // ১. টেম্পোরারি কার্ড তৈরি (লোডিং দেখানোর জন্য)
+        const tempId = `up-card-${Date.now()}-${i}`;
+        const tempCard = document.createElement('div');
+        tempCard.className = "file-card";
+        tempCard.id = tempId;
+        tempCard.innerHTML = `
+            <div class="upload-thumb-box">
+                <div class="upload-spinner"></div>
+                <div class="upload-text" id="prog-${tempId}">0%</div>
+            </div>
+            <span class="file-name">${file.name}</span>
+        `;
+        
+        // কার্ডটি গ্রিডের শুরুতে যোগ করা
+        grid.prepend(tempCard);
+
+        // ২. ফর্ম ডাটা তৈরি
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("upload_preset", "MiniDrive"); 
+        formData.append("cloud_name", "dhfbdy7rq");
+
+        try {
+            // ক্লাউডিনারি আপলোড (XHR দিয়ে)
+            const uploadedUrl = await new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open("POST", "https://api.cloudinary.com/v1_1/dhfbdy7rq/upload", true);
+
+                xhr.upload.onprogress = (e) => {
+                    if (e.lengthComputable) {
+                        const percent = Math.round((e.loaded / e.total) * 100);
+                        const txt = document.getElementById(`prog-${tempId}`);
+                        if(txt) txt.innerText = percent + "%";
+                    }
+                };
+
+                xhr.onload = () => {
+                    if (xhr.status === 200) {
+                        resolve(JSON.parse(xhr.responseText).secure_url);
+                    } else {
+                        reject("Upload failed");
+                    }
+                };
+                xhr.onerror = () => reject("Network Error");
+                xhr.send(formData);
+            });
+
+            // ৩. ফায়ারবেসে সেভ করা
+            const fileID = 'f_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+            let fType = 'file';
+            if (file.type.startsWith('image')) fType = 'image';
+            else if (file.type.startsWith('video')) fType = 'video';
+
+            await set(ref(db, `users/${curUser.uid}/files/${fileID}`), {
+                name: file.name,
+                url: uploadedUrl,
+                type: fType,
+                size: file.size,
+                parentId: curFold,
+                createdAt: Date.now()
+            });
+
+            // স্টোরেজ আপডেট
+            const userRef = ref(db, `users/${curUser.uid}`);
+            const snap = await get(userRef);
+            if(snap.exists()){
+                let used = snap.val().usedStorageBytes || 0;
+                await update(userRef, { usedStorageBytes: used + file.size });
+            }
+
+            // ৪. সফল হলে টেম্পোরারি কার্ড রিমুভ (অটোমেটিক রিয়েল কার্ড লোড হবে)
+            const cardToRemove = document.getElementById(tempId);
+            if(cardToRemove) cardToRemove.remove();
+
+        } catch (err) {
+            console.error(err);
+            const txt = document.getElementById(`prog-${tempId}`);
+            if(txt) {
+                txt.innerText = "Error";
+                txt.style.color = "#ff4757";
+            }
+        }
+    });
+    
+    // ইনপুট খালি করে দেওয়া যাতে পরে আবার একই ফাইল আপলোড করা যায়
+    input.value = "";
+};
+
+// --- 1. FILE DETAILS FEATURE ---
+window.showDetails = async () => {
+    if (selFiles.size !== 1) {
+        return window.openPopup('alert', 'Please select exactly one file to view details.', 'info');
     }
 
-    // MAIN
-    function init() {
+    // Get the selected file ID
+    const fileId = [...selFiles][0];
+    const fileRef = ref(db, `users/${curUser.uid}/files/${fileId}`);
+    const snap = await get(fileRef);
+
+    if (!snap.exists()) return;
+    const f = snap.val();
+
+    // Date Formatting
+    const dateObj = new Date(f.createdAt || Date.now());
+    const dateStr = dateObj.toLocaleDateString();
+    const timeStr = dateObj.toLocaleTimeString();
+
+    // Size Formatting
+    let sizeStr = "0 KB";
+    if (f.size) {
+        if (f.size < 1024 * 1024) sizeStr = (f.size / 1024).toFixed(2) + " KB";
+        else sizeStr = (f.size / (1024 * 1024)).toFixed(2) + " MB";
+    }
+
+    const html = `
+        <p><b>Name:</b> <span style="color:var(--text)">${f.name}</span></p>
+        <p><b>Type:</b> ${f.type.toUpperCase()}</p>
+        <p><b>Size:</b> ${sizeStr}</p>
+        <hr style="margin:10px 0; border:0; border-top:1px solid #ccc;">
+        <p><b>Upload Date:</b> ${dateStr}</p>
+        <p><b>Upload Time:</b> ${timeStr}</p>
+        <p><b>Location:</b> ${f.parentId === 'root' ? 'Home' : 'Folder'}</p>
+    `;
+
+    document.getElementById('det-content').innerHTML = html;
+    window.openModal('details-modal');
+};
+
+// --- 2. MOVE FILES FEATURE ---
+window.openMoveModal = () => {
+    if (selFiles.size === 0) return;
+
+    const list = document.getElementById('folder-list');
+    list.innerHTML = "";
+
+    // 1. Add "Home (Root)" option
+    if (curFold !== 'root') {
+        const homeBtn = document.createElement('div');
+        homeBtn.className = 'move-item';
+        homeBtn.innerHTML = `<i class="fas fa-home" style="color:var(--accent);"></i> Home (Root)`;
+        homeBtn.onclick = () => window.confirmMove('root');
+        list.appendChild(homeBtn);
+    }
+
+    // 2. Load other folders from DB
+    onValue(ref(db, `users/${curUser.uid}/files`), (snap) => {
+        if (!snap.exists()) return;
+        
+        snap.forEach(c => {
+            const item = c.val();
+            // Show only folders, exclude current folder, and exclude selected folders (to avoid loop)
+            if (item.type === 'folder' && c.key !== curFold && !selFiles.has(c.key)) {
+                const div = document.createElement('div');
+                div.className = 'move-item';
+                div.innerHTML = `<i class="fas fa-folder" style="color:#f7b731;"></i> ${item.name}`;
+                div.onclick = () => window.confirmMove(c.key);
+                list.appendChild(div);
+            }
+        });
+    }, { onlyOnce: true });
+
+    window.openModal('move-modal');
+};
+
+window.confirmMove = async (targetFoldId) => {
+    try {
+        const updates = {};
+        selFiles.forEach(fileId => {
+            // Update parentId to new folder ID
+            updates[`users/${curUser.uid}/files/${fileId}/parentId`] = targetFoldId;
+        });
+
+        await update(ref(db), updates);
+
+        window.closeModal('move-modal');
+        selFiles.clear();
+        document.getElementById('sel-actions').style.display = 'none';
+        
+        // Refresh grid implicitly by listener or manually
+        window.openPopup('alert', 'Files moved successfully!', 'success');
+        
+    } catch (e) {
+        console.error(e);
+        window.openPopup('alert', 'Move failed!', 'error');
+    }
+};
+
+function parseError(msg) {
+    if (msg.includes("user-not-found")) return "User not found";
+    if (msg.includes("wrong-password")) return "Wrong password";
+    if (msg.includes("email-already-in-use")) return "Email already registered";
+    return msg;
+}
+
+
+function init() {
     // screen switch
     document.getElementById('auth-screen').style.display = 'none';
     document.getElementById('dashboard').style.display = 'flex';
@@ -386,327 +739,249 @@
     onValue(ref(db, `users/${curUser.uid}/notifications`), (snapshot) => {
         const dot = document.getElementById('notif-dot');
         const count = snapshot.exists() ? snapshot.size : 0;
-
-        if (count > 0) {
-            dot.style.display = 'block';
-            dot.innerText = count;
-        } else {
-            dot.style.display = 'none';
-        }
+        dot.style.display = count > 0 ? 'block' : 'none';
+        dot.innerText = count;
     });
 
     // ADMIN CHAT BADGE
     onValue(ref(db, `admin_requests/${curUser.uid}/messages`), (snapshot) => {
         let unread = 0;
-
         if (snapshot.exists()) {
             snapshot.forEach(child => {
                 const msg = child.val();
                 if (msg.sender === 'admin' && !msg.userRead) unread++;
             });
         }
-
         const badge = document.getElementById('chat-badge');
-        if (unread > 0) {
-            badge.style.display = 'flex';
-            badge.innerText = unread;
-        } else {
-            badge.style.display = 'none';
-        }
+        badge.style.display = unread > 0 ? 'flex' : 'none';
+        badge.innerText = unread;
+    });
+
+    // --- ADMIN AUTO REPLY LOGIC (MOVED HERE) ---
+    onValue(ref(db, `admin_requests/${curUser.uid}/messages`), snap => {
+        snap.forEach(c => {
+            const msg = c.val();
+            if (msg.sender === 'user' && !msg.autoProcessed) {
+                const match = msg.text.match(/(\d+)\s*gb/i);
+                if (match) {
+                    const gb = parseInt(match[1]);
+                    let price = 0;
+                    if (gb > 14) price = (gb - 14) * 10;
+
+                    push(ref(db, `admin_requests/${curUser.uid}/messages`), {
+                        sender: 'admin',
+                        text: `${gb} GB storage price: ${price} TK`,
+                        timestamp: Date.now(),
+                        userRead: false
+                    });
+
+                    update(ref(db, `admin_requests/${curUser.uid}/messages/${c.key}`), {
+                        autoProcessed: true
+                    });
+                }
+            }
+        });
     });
 
     // FILE LOAD
     loadFiles();
 }
+async function uploadFile(file) {
+const cloudsSnap = await get(ref(db, 'admin_settings/clouds'));
+const clouds = cloudsSnap.val();
 
-    // --- UPLOAD WITH XHR (PROGRESS BAR) ---
-    window.uploadFilesXHR = async (inp) => {
-        const files = inp.files; if(files.length===0) return;
-        let cN=DEF_CLOUD, cP=DEF_PRESET;
-        const s=await get(ref(db,'admin_settings/active_cloud')); if(s.exists()){ cN=s.val().name; cP=s.val().preset; }
+for (let key in clouds) {
+    const cloud = clouds[key];
+    try {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("upload_preset", cloud.preset);
 
-        for(const f of files) {
-            // Create Placeholder in Grid
-            const tempId = "temp-" + Date.now();
-            const g = document.getElementById('file-grid');
-            const el = document.createElement('div'); el.className = "file-card"; el.id = tempId;
-            el.innerHTML = `<div class="thumb-wrapper"><i class="fas fa-spinner fa-spin file-icon"></i></div><span class="file-name">${f.name}</span><div class="upload-overlay" id="prog-${tempId}">0%</div>`;
-            g.insertBefore(el, g.firstChild);
-
-            // Upload using XHR
-            const fd = new FormData(); fd.append('file',f); fd.append('upload_preset',cP);
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', `https://api.cloudinary.com/v1_1/${cN}/upload`);
-
-            xhr.upload.onprogress = (e) => {
-                const percent = Math.round((e.loaded / e.total) * 100);
-                const pEl = document.getElementById(`prog-${tempId}`);
-                if(pEl) pEl.innerText = percent + "%";
-            };
-
-            xhr.onload = async () => {
-                if(xhr.status === 200) {
-                    const d = JSON.parse(xhr.responseText);
-                    const t = f.type.startsWith('image')?'image':(f.type.startsWith('video')?'video':'file');
-                    // Save to DB
-                    await push(ref(db,`users/${curUser.uid}/files`),{name:f.name,url:d.secure_url,type:t,size:d.bytes,createdAt:Date.now(),parentId:curFold});
-                    // Update Storage
-                    const us = await get(ref(db,`users/${curUser.uid}/usedStorageBytes`));
-                    update(ref(db,`users/${curUser.uid}`), {usedStorageBytes:(us.val()||0)+d.bytes});
-                    // Remove Placeholder (DB listener will render real file)
-                    const el = document.getElementById(tempId); if(el) el.remove();
-                } else {
-                    document.getElementById(tempId).remove();
-                    window.openPopup('alert', "Upload Failed: " + f.name, 'error');
-                }
-            };
-            xhr.send(fd);
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${cloud.name}/upload`, {
+            method: "POST",
+            body: formData
+        });
+        const data = await res.json();
+        if (data.secure_url) {
+            // Success → Firebase update
+            await push(ref(db, `users/${uid}/files`), {
+                url: data.secure_url,
+                type: file.type.startsWith("video") ? "video" : "image",
+                cloudName: cloud.name,
+                preset: cloud.preset
+            });
+            return; // Stop after success
         }
-        inp.value = ""; // Reset input
-    };
+    } catch (e) {
+        console.log(`${cloud.name} failed, trying next cloud...`);
+    }
+}
+alert("All clouds full or upload failed!");
+}
 
-    window.createFolder=()=>{ const n=document.getElementById('new-fold-name').value; if(n){ push(ref(db,`users/${curUser.uid}/files`),{name:n,type:'folder',parentId:curFold,createdAt:Date.now()}); document.getElementById('new-fold-name').value=""; window.closeModal('folder-modal'); } };
+window.createFolder=()=>{ const n=document.getElementById('new-fold-name').value; if(n){ push(ref(db,`users/${curUser.uid}/files`),{name:n,type:'folder',parentId:curFold,createdAt:Date.now()}); document.getElementById('new-fold-name').value=""; window.closeModal('folder-modal'); } };
 
-    // --- DELETE WITH STORAGE RECLAIM ---
-    window.deleteSelected = async () => {
-        let totalBytesFreed = 0;
-        for (const k of selFiles) {
-            const fRef = ref(db, `users/${curUser.uid}/files/${k}`);
-            const snap = await get(fRef);
-            if (snap.exists()) {
-                const f = snap.val();
-                if(f.size) totalBytesFreed += f.size;
-                await remove(fRef);
-            }
+// --- DELETE WITH STORAGE RECLAIM ---
+window.deleteSelected = async () => {
+    let totalBytesFreed = 0;
+    for (const k of selFiles) {
+        const fRef = ref(db, `users/${curUser.uid}/files/${k}`);
+        const snap = await get(fRef);
+        if (snap.exists()) {
+            const f = snap.val();
+            if(f.size) totalBytesFreed += f.size;
+            await remove(fRef);
         }
-        // Update Storage Limit
-        const us = await get(ref(db, `users/${curUser.uid}/usedStorageBytes`));
-        let current = us.val() || 0;
-        let newSize = current - totalBytesFreed;
-        if(newSize < 0) newSize = 0;
-        await update(ref(db, `users/${curUser.uid}`), { usedStorageBytes: newSize });
+    }
+    // Update Storage Limit
+    const us = await get(ref(db, `users/${curUser.uid}/usedStorageBytes`));
+    let current = us.val() || 0;
+    let newSize = current - totalBytesFreed;
+    if(newSize < 0) newSize = 0;
+    await update(ref(db, `users/${curUser.uid}`), { usedStorageBytes: newSize });
 
-        selFiles.clear(); 
-        document.getElementById('sel-actions').style.display='none'; 
-        document.getElementById('global-popup').style.display='none';
-    };
-
+    selFiles.clear(); 
+    document.getElementById('sel-actions').style.display='none'; 
+    document.getElementById('global-popup').style.display='none';
+};
 function loadFiles(){
-    if(filesListenerAttached) return;
-    filesListenerAttached = true;
+if(filesListenerAttached) return;
+filesListenerAttached = true;
 
-    onValue(ref(db,`users/${curUser.uid}/files`), snapshot=>{
-        dbSnapshot = snapshot;   // ✅ এখানেই সেভ
-        renderFiles(snapshot);
-    });
+onValue(ref(db,`users/${curUser.uid}/files`), snapshot=>{
+    dbSnapshot = snapshot;   // ✅ এখানেই সেভ
+    renderFiles(snapshot);
+});
 }
-
 function renderFiles(snapshot){
-    const g = document.getElementById('file-grid');
-    g.innerHTML = "";
+const g = document.getElementById('file-grid');
+g.innerHTML = "";
 
-    if(!snapshot) return;
+if(!snapshot) return;
 
-    const allFiles = [];
-    snapshot.forEach(c=>{
-        allFiles.push({ k:c.key, ...c.val() });
-    });
+const allFiles = [];
+snapshot.forEach(c=>{
+    allFiles.push({ k:c.key, ...c.val() });
+});
 
-    const visibleFiles = allFiles.filter(
-        f => (f.parentId ?? 'root') === curFold
-    );
+const visibleFiles = allFiles.filter(
+    f => (f.parentId ?? 'root') === curFold
+);
 
-    visibleFiles.sort((a,b)=>{
-        if(a.type==='folder' && b.type!=='folder') return -1;
-        if(a.type!=='folder' && b.type==='folder') return 1;
-        return (b.createdAt||0)-(a.createdAt||0);
-    });
+// ফোল্ডার আগে, তারপর নতুন ফাইল - এভাবে সাজানো
+visibleFiles.sort((a,b)=>{
+    if(a.type==='folder' && b.type!=='folder') return -1;
+    if(a.type!=='folder' && b.type==='folder') return 1;
+    return (b.createdAt||0)-(a.createdAt||0);
+});
 
-    currentMediaList = visibleFiles.filter(
-        f => f.type==='image' || f.type==='video'
-    );
+// গ্যালারি ভিউ এর জন্য লিস্ট আপডেট
+currentMediaList = visibleFiles.filter(
+    f => f.type==='image' || f.type==='video'
+);
 
-    visibleFiles.forEach(f=>{
-        const el = document.createElement('div');
-        el.className = "file-card";
+visibleFiles.forEach(f=>{
+    const el = document.createElement('div');
+    el.className = "file-card";
+    if(selFiles.has(f.k)) el.classList.add('selected'); // সিলেকশন ধরে রাখা
 
-        let thumb = "";
-        if(f.type === 'folder'){
-            thumb = `<i class="fas fa-folder file-icon" style="color:#f7b731"></i>`;
-        }else if(f.type === 'image'){
-            thumb = `<img src="${f.url}" class="file-thumb">`;
-        }else if(f.type === 'video'){
-            const thumbUrl = f.url
-                .replace('/video/upload/', '/video/upload/so_1/')
-                .replace('.mp4', '.jpg');
+    let thumb = "";
+    if(f.type === 'folder'){
+        thumb = `<i class="fas fa-folder file-icon" style="color:#f7b731"></i>`;
+    }else if(f.type === 'image'){
+        thumb = `<img src="${f.url}" class="file-thumb" loading="lazy">`;
+    }else if(f.type === 'video'){
+        // ভিডিওর থাম্বনেইল জেনারেট (Cloudinary)
+        const thumbUrl = f.url.includes('cloudinary') 
+            ? f.url.replace('/video/upload/', '/video/upload/so_1,w_300,h_300,c_fill/').replace('.mp4', '.jpg')
+            : 'https://via.placeholder.com/150?text=VIDEO'; 
 
-            thumb = `
-                <img src="${thumbUrl}" class="file-thumb">
-                <div class="type-badge">VIDEO</div>
-            `;
-        }else{
-            thumb = `<i class="fas fa-file file-icon"></i>`;
+        thumb = `
+            <img src="${thumbUrl}" class="file-thumb" loading="lazy">
+            <div class="type-badge">VIDEO</div>
+        `;
+    }else{
+        thumb = `<i class="fas fa-file file-icon"></i>`;
+    }
+
+    el.innerHTML = `
+        <div class="thumb-wrapper">${thumb}</div>
+        <span class="file-name">${f.name}</span>
+    `;
+
+    // ===== TOUCH SYSTEM (SCROLL FIX ADDED) =====
+    let pressTimer = null;
+    let isLongPress = false;
+    let isScrolling = false; // এই ভেরিয়েবলটি স্ক্রল ট্র্যাক করবে
+
+    el.addEventListener("touchstart", () => {
+        isScrolling = false; // প্রথমে ধরি ইউজার ট্যাপ করছে
+        isLongPress = false;
+        
+        // লং প্রেস টাইমার শুরু
+        pressTimer = setTimeout(() => {
+            if(!isScrolling){ // যদি স্ক্রল না করে থাকে তবেই সিলেক্ট হবে
+                isLongPress = true;
+                togSel(f.k, el);
+                if(navigator.vibrate) navigator.vibrate(50);
+            }
+        }, 500);
+    }, {passive: true});
+
+    el.addEventListener("touchmove", () => {
+        isScrolling = true; // আঙুল নড়লে এটাকে স্ক্রল হিসেবে মার্ক করা হলো
+        clearTimeout(pressTimer); // স্ক্রল করলে লং প্রেস বাতিল
+    }, {passive: true});
+
+    el.addEventListener("touchend", (e) => {
+        clearTimeout(pressTimer);
+
+        // ১. যদি স্ক্রল করা হয়, তাহলে কিছুই হবে না (ফাইল ওপেন হবে না)
+        if(isScrolling) return; 
+
+        // ২. যদি লং প্রেস করা হয়ে থাকে, তাহলেও ওপেন হবে না
+        if(isLongPress) return;
+
+        // ৩. যদি সিলেকশন মোড অন থাকে (একটা ফাইল সিলেক্ট করা আছে), তাহলে ট্যাপ করলে সিলেক্ট/আনসিলেক্ট হবে
+        if(selFiles.size > 0){
+            togSel(f.k, el);
+            return;
         }
 
-        el.innerHTML = `
-            <div class="thumb-wrapper">${thumb}</div>
-            <span class="file-name">${f.name}</span>
-        `;
-
-        // ===== TOUCH SYSTEM =====
-        let pressTimer = null;
-        let longPressed = false;
-
-        el.addEventListener("touchstart", () => {
-            longPressed = false;
-            pressTimer = setTimeout(() => {
-                longPressed = true;
-                togSel(f.k, el);
-                navigator.vibrate?.(40);
-            }, 500);
-        });
-
-        el.addEventListener("touchend", () => {
-            clearTimeout(pressTimer);
-
-            if(longPressed) return;
-
-            if(selFiles.size > 0){
-                togSel(f.k, el);
-                return;
-            }
-
-            // ✅ NORMAL CLICK
-            if (f.type === 'folder') nav(f.k, f.name);
-            else if (f.type === 'image') viewPhoto(f.url, f.k);
-            else if (f.type === 'video') playVideoInApp(f.url, f.k);
-            else window.open(f.url);
-        });
-
-        el.addEventListener("touchmove", () => clearTimeout(pressTimer));
-        // ========================
-
-        g.appendChild(el);
+        // ৪. সব ঠিক থাকলে (নরমাল ট্যাপ) ফাইল ওপেন হবে
+        if (f.type === 'folder') nav(f.k, f.name);
+        else if (f.type === 'image') viewPhoto(f.url, f.k);
+        else if (f.type === 'video') playVideoInApp(f.url, f.k);
+        else window.open(f.url);
     });
+    // ===========================================
+
+    g.appendChild(el);
+});
 }
 
-    // --- NEXT / PREV LOGIC ---
-    function findMediaIndex(key) { return currentMediaList.findIndex(m => m.k === key); }
-    
-    window.nextMedia = () => {
-        if(currentMediaList.length === 0) return;
-        currentMediaIndex = (currentMediaIndex + 1) % currentMediaList.length;
-        openMediaByIndex(currentMediaIndex);
-    };
-
-    window.prevMedia = () => {
-        if(currentMediaList.length === 0) return;
-        currentMediaIndex = (currentMediaIndex - 1 + currentMediaList.length) % currentMediaList.length;
-        openMediaByIndex(currentMediaIndex);
-    };
-
-    function openMediaByIndex(idx) {
-        const item = currentMediaList[idx];
-        if(item.type === 'video') {
-            window.closePhotoViewer();
-            window.playVideoInApp(item.url, item.k, false); // false = don't reset index
-        } else if (item.type === 'image') {
-            window.closeVideoPlayer();
-            window.viewPhoto(item.url, item.k, false);
-        }
-    }
-
-    // --- VIEWERS ---
-    window.viewPhoto = (url, key, resetIndex=true) => {
-        if(resetIndex) currentMediaIndex = findMediaIndex(key);
-        document.getElementById('main-photo').src = url;
-        document.getElementById('photo-viewer').style.display = 'flex';
-    };
-    window.closePhotoViewer = () => { document.getElementById('photo-viewer').style.display = 'none'; document.getElementById('main-photo').src = ""; };
-
-    window.playVideoInApp = (url, key, resetIndex=true) => {
-        if(resetIndex) currentMediaIndex = findMediaIndex(key);
-        const p=document.getElementById('custom-player'), v=document.getElementById('main-video'), s=document.getElementById('vid-seek');
-        v.src = url; p.style.display = 'flex'; v.play();
-        document.getElementById('play-btn').innerHTML = '<i class="fas fa-pause"></i>';
-        v.ontimeupdate=()=>{ s.value=(v.currentTime/v.duration)*100; let m=Math.floor(v.currentTime/60), sec=Math.floor(v.currentTime%60); document.getElementById('vid-time-txt').innerText=`${m}:${sec<10?'0':''}${sec}`; };
-        s.oninput=()=>{ v.currentTime=(s.value/100)*v.duration; };
-    };
-    window.toggleVideo=()=>{ const v=document.getElementById('main-video'), b=document.getElementById('play-btn'); if(v.paused){ v.play(); b.innerHTML='<i class="fas fa-pause"></i>'; } else { v.pause(); b.innerHTML='<i class="fas fa-play"></i>'; } };
-    window.closeVideoPlayer=()=>{ document.getElementById('custom-player').style.display='none'; document.getElementById('main-video').pause(); document.getElementById('main-video').src=""; };
-
-    // --- DOWNLOAD ---
-    window.downloadSelected=()=>{ selFiles.forEach(async k=>{ const f=(await get(ref(db,`users/${curUser.uid}/files/${k}`))).val(); fetch(f.url).then(r=>r.blob()).then(b=>{const u=window.URL.createObjectURL(b), a=document.createElement('a'); a.style.display='none'; a.href=u; a.download=f.name; document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(u);}).catch(()=>window.open(f.url)); }); selFiles.clear(); document.getElementById('sel-actions').style.display='none'; };
-    
-    // NAVIGATION
-    function togSel(k,el){ if(selFiles.has(k)){selFiles.delete(k);el.classList.remove('selected');}else{selFiles.add(k);el.classList.add('selected');} document.getElementById('sel-actions').style.display=selFiles.size>0?'flex':'none'; }
-    window.nav = (id, name) => {
-    curFold = id;
-    foldPath.push({ id, name });
-    upPath();
-    history.pushState({}, ""); // 👈 back enable
-    renderFiles(dbSnapshot);
-};
-
-window.goBack = () => { 
-    if(curFold === 'root') return;
-    foldPath.pop();
-    curFold = foldPath[foldPath.length - 1].id;
-    upPath();
-    renderFiles(dbSnapshot);   // ✅ FIX
-};
-    function upPath(){ document.getElementById('path-bar').style.display=curFold==='root'?'none':'flex'; document.getElementById('curr-folder').innerText="/ "+foldPath.map(p=>p.name).join(" / "); }
-    
-    window.addEventListener("popstate", () => {
-    if (foldPath.length > 1) {
-        foldPath.pop();
-        curFold = foldPath[foldPath.length - 1].id;
-        upPath();
-        renderFiles(dbSnapshot);
-    } else {
-        navigator.app?.exitApp?.(); // WebView হলে
-    }
-});
-
-    // SHARE & NOTIF
-    window.shareFiles=async()=>{ const id=document.getElementById('share-uid').value, m=await get(ref(db,`uid_map/${id}`)); if(!m.exists())return window.openPopup('alert',"UID Not Found",'error'); selFiles.forEach(async k=>{const f=(await get(ref(db,`users/${curUser.uid}/files/${k}`))).val(); push(ref(db,`users/${m.val()}/notifications`),{from:myUID,fname:f.name,url:f.url,type:f.type,size:f.size});}); window.openPopup('alert',"Sent!",'success'); window.closeModal('share-modal'); selFiles.clear(); };
-    window.loadNotifs=()=>{ const l=document.getElementById('notif-list'); l.innerHTML=""; onValue(ref(db,`users/${curUser.uid}/notifications`),s=>{ l.innerHTML=""; s.forEach(c=>{ const n=c.val(); const d=document.createElement('div'); d.className="neu-inset"; d.style.padding="10px"; d.style.marginBottom="5px"; d.innerHTML=`<small>From ${n.from}</small><br><b>${n.fname}</b><br><button class="neu-btn" style="font-size:10px; margin-top:5px;" onclick="window.acc('${c.key}')">Save</button>`; l.appendChild(d); }); }); };
-    window.acc=async(k)=>{ const r=ref(db,`users/${curUser.uid}/notifications/${k}`), n=(await get(r)).val(); await push(ref(db,`users/${curUser.uid}/files`),{name:n.fname,url:n.url,type:n.type,size:n.size,parentId:'root',createdAt:Date.now()}); remove(r); };
-    window.copyUID=()=>{navigator.clipboard.writeText(myUID); window.openPopup('alert',"UID Copied",'success');}; window.logout=()=>{signOut(auth); location.reload();}; 
-    // CHAT
-    window.openChat=()=>{document.getElementById('chat-modal').style.display='flex';const r=ref(db,`admin_requests/${curUser.uid}/messages`);get(r).then(s=>{if(s.exists())s.forEach(c=>{if(c.val().sender==='admin'&&!c.val().userRead)update(ref(db,`admin_requests/${curUser.uid}/messages/${c.key}`),{userRead:true})})});onValue(r,s=>{const d=document.getElementById('chat-msgs');d.innerHTML="";if(s.exists()){s.forEach(c=>{const m=c.val();d.innerHTML+=`<div class="msg ${m.sender==='user'?'msg-me':'msg-admin'}">${m.text}</div>`});d.scrollTop=d.scrollHeight}else{d.innerHTML="<small style='text-align:center;color:gray'>Contact Admin</small>"}})};
-    window.sendChat=async()=>{const t=document.getElementById('chat-in').value;if(!t)return;await push(ref(db,`admin_requests/${curUser.uid}/messages`),{sender:'user',text:t,timestamp:Date.now()});const u=await get(ref(db,`users/${curUser.uid}`));await update(ref(db,`admin_requests/${curUser.uid}`),{uid:curUser.uid,email:u.exists()?u.val().email:"User",seen:false,lastMsg:t,timestamp:Date.now()});document.getElementById('chat-in').value=""};
-    
-    onValue(ref(db,`admin_requests/${curUser.uid}/messages`), snap=>{
-    snap.forEach(c=>{
-        const msg = c.val();
-
-        if(msg.sender === 'user' && !msg.autoProcessed){
-            const match = msg.text.match(/(\d+)\s*gb/i);
-
-            if(match){
-                const gb = parseInt(match[1]);
-                let price = 0;
-
-                if(gb > 14){
-                    price = (gb - 14) * 10;
-                }
-
-                push(ref(db,`admin_requests/${curUser.uid}/messages`),{
-                    sender: 'admin',
-                    text: `${gb} GB storage price: ${price} TK`,
-                    timestamp: Date.now(),
-                    userRead: false
-                });
-
-                update(ref(db,`admin_requests/${curUser.uid}/messages/${c.key}`),{
-                    autoProcessed: true
-                });
-            }
-        }
-    });
-});
-
+function findMediaIndex(key) { return currentMediaList.findIndex(m => m.k === key); }
+window.nextMedia = () => { if(currentMediaList.length === 0) return; currentMediaIndex = (currentMediaIndex + 1) % currentMediaList.length; openMediaByIndex(currentMediaIndex); };
+window.prevMedia = () => { if(currentMediaList.length === 0) return; currentMediaIndex = (currentMediaIndex - 1 + currentMediaList.length) % currentMediaList.length; openMediaByIndex(currentMediaIndex); };
+function openMediaByIndex(idx) { const item = currentMediaList[idx]; if(item.type === 'video') { window.closePhotoViewer(); window.playVideoInApp(item.url, item.k, false); } else if (item.type === 'image') { window.closeVideoPlayer(); window.viewPhoto(item.url, item.k, false); } }
+window.viewPhoto = (url, key, resetIndex=true) => { if(resetIndex) currentMediaIndex = findMediaIndex(key); document.getElementById('main-photo').src = url; document.getElementById('photo-viewer').style.display = 'flex'; };
+window.closePhotoViewer = () => { document.getElementById('photo-viewer').style.display = 'none'; document.getElementById('main-photo').src = ""; };
+window.playVideoInApp = (url, key, resetIndex=true) => { if(resetIndex) currentMediaIndex = findMediaIndex(key); const p=document.getElementById('custom-player'), v=document.getElementById('main-video'), s=document.getElementById('vid-seek'); v.src = url; p.style.display = 'flex'; v.play(); document.getElementById('play-btn').innerHTML = '<i class="fas fa-pause"></i>'; v.ontimeupdate=()=>{ s.value=(v.currentTime/v.duration)*100; let m=Math.floor(v.currentTime/60), sec=Math.floor(v.currentTime%60); document.getElementById('vid-time-txt').innerText=`${m}:${sec<10?'0':''}${sec}`; }; s.oninput=()=>{ v.currentTime=(s.value/100)*v.duration; }; };
+window.toggleVideo = () => { const v=document.getElementById('main-video'), b=document.getElementById('play-btn'); if(v.paused){ v.play(); b.innerHTML='<i class="fas fa-pause"></i>'; } else { v.pause(); b.innerHTML='<i class="fas fa-play"></i>'; } };
+window.closeVideoPlayer = () => { document.getElementById('custom-player').style.display='none'; document.getElementById('main-video').pause(); document.getElementById('main-video').src=""; };
+window.downloadSelected = () => { selFiles.forEach(async k=>{ const f=(await get(ref(db,`users/${curUser.uid}/files/${k}`))).val(); fetch(f.url).then(r=>r.blob()).then(b=>{const u=window.URL.createObjectURL(b), a=document.createElement('a'); a.style.display='none'; a.href=u; a.download=f.name; document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(u);}).catch(()=>window.open(f.url)); }); selFiles.clear(); document.getElementById('sel-actions').style.display='none'; };
+function togSel(k,el) { if(selFiles.has(k)){selFiles.delete(k);el.classList.remove('selected');}else{selFiles.add(k);el.classList.add('selected');} document.getElementById('sel-actions').style.display=selFiles.size>0?'flex':'none'; }
+window.nav = (id, name) => { curFold = id; foldPath.push({ id, name }); upPath(); history.pushState({}, ""); renderFiles(dbSnapshot); };
+window.goBack = () => { if(curFold === 'root') return; foldPath.pop(); curFold = foldPath[foldPath.length - 1].id; upPath(); renderFiles(dbSnapshot); };
+function upPath() { document.getElementById('path-bar').style.display=curFold==='root'?'none':'flex'; document.getElementById('curr-folder').innerText="/ "+foldPath.map(p=>p.name).join(" / "); }
+window.addEventListener("popstate", () => { if (foldPath.length > 1) { foldPath.pop(); curFold = foldPath[foldPath.length - 1].id; upPath(); renderFiles(dbSnapshot); } else { navigator.app?.exitApp?.(); } });
+window.shareFiles = async() => { const id=document.getElementById('share-uid').value, m=await get(ref(db,`uid_map/${id}`)); if(!m.exists())return window.openPopup('alert',"UID Not Found",'error'); selFiles.forEach(async k=>{const f=(await get(ref(db,`users/${curUser.uid}/files/${k}`))).val(); push(ref(db,`users/${m.val()}/notifications`),{from:myUID,fname:f.name,url:f.url,type:f.type,size:f.size});}); window.openPopup('alert',"Sent!",'success'); window.closeModal('share-modal'); selFiles.clear(); };
+window.loadNotifs = () => { const l=document.getElementById('notif-list'); l.innerHTML=""; onValue(ref(db,`users/${curUser.uid}/notifications`),s=>{ l.innerHTML=""; s.forEach(c=>{ const n=c.val(); const d=document.createElement('div'); d.className="neu-inset"; d.style.padding="10px"; d.style.marginBottom="5px"; d.innerHTML=`<small>From ${n.from}</small><br><b>${n.fname}</b><br><button class="neu-btn" style="font-size:10px; margin-top:5px;" onclick="window.acc('${c.key}')">Save</button>`; l.appendChild(d); }); }); };
+window.acc = async(k) => { const r=ref(db,`users/${curUser.uid}/notifications/${k}`), n=(await get(r)).val(); await push(ref(db,`users/${curUser.uid}/files`),{name:n.fname,url:n.url,type:n.type,size:n.size,parentId:'root',createdAt:Date.now()}); remove(r); };
+window.copyUID = () => { navigator.clipboard.writeText(myUID); window.openPopup('alert',"UID Copied",'success'); };
+window.logout = () => { signOut(auth); location.reload(); };
+window.openChat = () => { document.getElementById('chat-modal').style.display='flex';const r=ref(db,`admin_requests/${curUser.uid}/messages`);get(r).then(s=>{if(s.exists())s.forEach(c=>{if(c.val().sender==='admin'&&!c.val().userRead)update(ref(db,`admin_requests/${curUser.uid}/messages/${c.key}`),{userRead:true})})});onValue(r,s=>{const d=document.getElementById('chat-msgs');d.innerHTML="";if(s.exists()){s.forEach(c=>{const m=c.val();d.innerHTML+=`<div class="msg ${m.sender==='user'?'msg-me':'msg-admin'}">${m.text}</div>`});d.scrollTop=d.scrollHeight}else{d.innerHTML="<small style='text-align:center;color:gray'>Contact Admin</small>"}})};
+window.sendChat = async() => { const t=document.getElementById('chat-in').value;if(!t)return;await push(ref(db,`admin_requests/${curUser.uid}/messages`),{sender:'user',text:t,timestamp:Date.now()});const u=await get(ref(db,`users/${curUser.uid}`));await update(ref(db,`admin_requests/${curUser.uid}`),{uid:curUser.uid,email:u.exists()?u.val().email:"User",seen:false,lastMsg:t,timestamp:Date.now()});document.getElementById('chat-in').value="" };
 </script>
 </body>
 </html>
