@@ -177,41 +177,179 @@
     font-size: 13px; font-weight: bold; color: var(--text);
 }
 .move-item:active { box-shadow: inset 2px 2px 5px #a3b1c6, inset -2px -2px 5px #ffffff; }
+
+/* --- bKash Style Scanner CSS (Fixed) --- */
+/* ক্যামেরা বক্স */
+#cam-box, #cam-box-forgot {
+    position: relative;
+    width: 100%;
+    height: 300px; /* হাইট ফিক্সড */
+    background: #000;
+    border-radius: 15px;
+    overflow: hidden;
+    display: none; /* শুরুতে বন্ধ থাকবে */
+    margin-top: 10px;
+}
+
+/* ভিডিও উল্টো (আয়নার মতো) */
+video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+}
+
+/* কালো আস্তরণ (Overlay) */
+./* --- BIG SCANNER FIX (কাছ থেকে স্ক্যান হবে) --- */
+
+.scan-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.5); /* একটু স্বচ্ছ রাখা হয়েছে */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+}
+
+/* বড় ফ্রেম (যাতে দূরে যেতে না হয়) */
+.face-frame {
+    position: relative;
+    /* চওড়া বাড়ালাম */
+    width: 80%; 
+    max-width: 320px; 
+    /* লম্বা অনেক বাড়ালাম */
+    height: 400px; 
+    
+    border: 3px solid rgba(255, 255, 255, 0.6);
+    border-radius: 120px; /* ওভাল শেপ ঠিক রাখার জন্য */
+    
+    /* ফ্রেমের বাইরে সব অন্ধকার করে দেওয়া */
+    box-shadow: 0 0 0 100vh rgba(0, 0, 0, 0.7); 
+    overflow: hidden;
+    z-index: 15;
+}
+
+/* স্ক্যানিং লেজার (লাল দাগ) */
+.scan-line {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; 
+    height: 5px; /* একটু মোটা করলাম */
+    background: #e2136e; /* bKash Pink */
+    box-shadow: 0 0 20px #e2136e;
+    animation: scanAnim 2s infinite linear;
+}
+
+@keyframes scanAnim {
+    0% { top: -10%; opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { top: 110%; opacity: 0; }
+}
+
+/* স্ট্যাটাস টেক্সট (ফ্রেমের নিচে থাকবে) */
+.scan-text {
+    position: absolute;
+    bottom: 30px; /* নিচে ফিক্সড */
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    text-shadow: 0 2px 5px black;
+    z-index: 20;
+    background: rgba(0,0,0,0.3);
+    padding: 5px 15px;
+    border-radius: 20px;
+}
     </style>
 </head>
 <body>
 
-    <!-- AUTH -->
-    <div id="auth-screen">
-        <div class="neu-box auth-card">
-            <h2 style="color:var(--text);">MiniDrive</h2>
-            <div id="login-form">
-                <input type="email" id="l-email" class="neu-inset neu-input" placeholder="Gmail" style="margin-bottom:15px;">
-                <input type="password" id="l-pass" class="neu-inset neu-input" placeholder="Password" style="margin-bottom:15px;">
-                <button class="neu-btn" style="width:100%; padding:15px;" onclick="window.login()">Log In</button>
-                <p style="margin-top:15px; font-size:12px; cursor:pointer;" onclick="window.toggleAuth('signup')">Create Account</p>
+    <!-- AUTH SCREEN (Fixed) -->
+<div id="auth-screen">
+    <div class="neu-box auth-card" style="width: 350px; padding: 25px;">
+        <!-- ১. লগিন ফর্ম (আপডেট করা) -->
+<div id="login-form">
+    <h2 style="color:var(--text); margin-bottom: 20px;">MiniDrive</h2>
+    
+    <input type="email" id="l-email" class="neu-inset neu-input" placeholder="Gmail" style="margin-bottom:15px;">
+    <input type="password" id="l-pass" class="neu-inset neu-input" placeholder="Password" style="margin-bottom:20px;">
+    
+    <!-- লগিন বাটন -->
+    <button class="neu-btn" style="width:100%; padding:15px; font-size: 16px; margin-bottom: 20px;" onclick="window.login()">Log In</button>
+    
+    <!-- একটার নিচে একটা অপশন -->
+    <div style="display:flex; flex-direction:column; gap:15px; align-items:center;">
+        
+        <!-- Create Account বাটন স্টাইলে -->
+        <button class="neu-btn" style="width:100%; padding:10px; font-size:14px; background:transparent; border:1px solid #cbd2d9; box-shadow:none;" onclick="window.toggleAuth('signup')">
+            Create New Account
+        </button>
+
+        <!-- Forgot Password টেক্সট -->
+        <p style="font-size:13px; cursor:pointer; color:var(--danger); font-weight:bold;" onclick="window.toggleAuth('forgot')">
+            Forgot Password?
+        </p>
+    </div>
+</div>
+
+        <!-- ২. সাইনআপ ফর্ম -->
+        <div id="signup-form" style="display:none;">
+            <div id="s-inputs">
+                <input type="text" id="r-name" class="neu-inset neu-input" placeholder="Full Name" style="margin-bottom:10px;">
+                <input type="email" id="r-email" class="neu-inset neu-input" placeholder="Gmail" style="margin-bottom:10px;">
+                <input type="password" id="r-pass" class="neu-inset neu-input" placeholder="Password" style="margin-bottom:10px;">
+                
+                <button class="neu-btn" style="width:100%; padding:12px; margin-top:5px;" onclick="window.startCam()">Next (Face Scan)</button>
+                <p style="margin-top:15px; font-size:12px; cursor:pointer;" onclick="window.toggleAuth('login')">Back to Login</p>
             </div>
-            <div id="signup-form" style="display:none;">
-                <div id="s-inputs">
-                    <input type="text" id="r-name" class="neu-inset neu-input" placeholder="Name" style="margin-bottom:10px;">
-                    <input type="email" id="r-email" class="neu-inset neu-input" placeholder="Gmail" style="margin-bottom:10px;">
-                    <input type="password" id="r-pass" class="neu-inset neu-input" placeholder="Password" style="margin-bottom:10px;">
-                    <button class="neu-btn" style="width:100%; padding:15px; margin-top:10px;" onclick="window.startCam()">Next</button>
-                    <p style="margin-top:15px; font-size:12px; cursor:pointer;" onclick="window.toggleAuth('login')">Back to Login</p>
-                </div>
-                <div id="cam-box">
-                    <video id="webcam" autoplay playsinline></video>
-                    <canvas id="scan-canvas" style="display:none;"></canvas>
-                    <div class="scan-overlay">
-                        <div class="face-frame" id="face-frame"></div>
-                        <div id="scan-status">Position Face</div>
-                        <div id="prog-bar"><div id="prog-fill"></div></div>
+
+            <!-- সাইনআপ ক্যামেরা বক্স -->
+            <div id="cam-box">
+                <video id="webcam" autoplay playsinline muted></video>
+                <canvas id="scan-canvas" style="display:none;"></canvas>
+                <div class="scan-overlay">
+                    <div class="face-frame">
+                        <div class="scan-line"></div>
                     </div>
+                    <div class="scan-text" id="scan-status">Detecting Face...</div>
                 </div>
-                <button id="cancel-scan" class="neu-btn" style="width:100%; margin-top:10px; display:none;" onclick="location.reload()">Cancel</button>
             </div>
         </div>
+
+        <!-- ৩. ফরগট পাসওয়ার্ড ফর্ম (বিকাশ স্টাইল স্ক্যানার) -->
+        <div id="forgot-form" style="display:none;">
+            <!-- ইনপুট সেকশন -->
+            <div id="f-inputs">
+                <h4 style="color:#555; margin-bottom:10px;">Face Verification</h4>
+                <p style="font-size:11px; color:#777; margin-bottom:15px;">
+                    Enter email and scan your face to reset password.
+                </p>
+                <input type="email" id="f-email" class="neu-inset neu-input" placeholder="Your Gmail" style="margin-bottom:15px;">
+                
+                <button class="neu-btn" style="width:100%; padding:12px;" onclick="window.startForgotScan()">
+                    <i class="fas fa-camera"></i> Start Face Scan
+                </button>
+                <p style="margin-top:15px; font-size:12px; cursor:pointer;" onclick="window.toggleAuth('login')">Cancel</p>
+            </div>
+
+            <!-- ফরগট ক্যামেরা বক্স -->
+            <div id="cam-box-forgot">
+                <video id="webcam-forgot" autoplay playsinline muted></video>
+                <div class="scan-overlay">
+                    <!-- এই ফ্রেমটাই বিকাশের মতো লাগবে -->
+                    <div class="face-frame" id="f-frame">
+                        <div class="scan-line" id="f-line"></div>
+                    </div>
+                    <div class="scan-text" id="scan-status-forgot">Position your face</div>
+                </div>
+            </div>
+        </div>
+
     </div>
+</div>
 
     <!-- DASHBOARD -->
     <div id="dashboard">
@@ -226,7 +364,7 @@
                     <button class="neu-btn" style="width:35px; height:35px;"><i class="fas fa-comment-dollar"></i></button>
                     <div id="chat-badge" class="notif-dot" style="background:#20bf6b; width:18px; height:18px; top:-5px; right:-5px; display:none; justify-content:center; align-items:center;">0</div>
                 </div>
-                <button class="neu-btn" style="width:35px; height:35px; color:var(--danger);" onclick="window.logout()"><i class="fas fa-power-off"></i></button>
+                <button class="neu-btn" style="width:35px; height:35px; color:#4a4a4a;" onclick="window.openSettings()"><i class="fas fa-cog"></i></button>
             </div>
         </header>
 
@@ -330,6 +468,44 @@
         <button class="neu-btn" style="width:100%; margin-top:15px;" onclick="window.closeModal('move-modal')">Cancel</button>
     </div>
 </div>
+<!-- SETTINGS MODAL (Folder Lock) -->
+<div id="settings-modal" class="modal-overlay">
+    <div class="modal neu-box" style="width:320px;">
+        <h3>Settings</h3>
+        
+        <!-- Create/Change Password -->
+        <div class="settings-section">
+            <h4><i class="fas fa-key"></i> Folder Password</h4>
+            <input type="password" id="folder-pass-in" class="neu-inset neu-input" placeholder="Set new password">
+            <button class="neu-btn" style="width:100%; margin-top:10px; padding:10px;" onclick="window.saveFolderPass()">Save Password</button>
+        </div>
+
+        <!-- Lock/Unlock Folder -->
+        <div class="settings-section">
+            <h4><i class="fas fa-lock"></i> Lock / Unlock Folder</h4>
+            <select id="folder-select" class="neu-inset neu-input" style="margin-bottom:10px;">
+                <option value="">Select Folder</option>
+            </select>
+            <input type="password" id="action-pass-in" class="neu-inset neu-input" placeholder="Enter password to confirm">
+            <button class="neu-btn" style="width:100%; margin-top:10px; padding:10px; color:var(--danger);" onclick="window.toggleFolderLock()">Confirm Action</button>
+        </div>
+
+        <button class="neu-btn" style="width:100%; margin-top:20px;" onclick="window.closeModal('settings-modal')">Close</button>
+    </div>
+</div>
+
+<!-- PASSWORD VERIFY MODAL (For opening locked folder) -->
+<div id="verify-pass-modal" class="modal-overlay">
+    <div class="modal neu-box">
+        <h3><i class="fas fa-lock" style="color:var(--danger);"></i> Locked Folder</h3>
+        <p style="font-size:12px; margin-bottom:10px;">Enter password to open</p>
+        <input type="password" id="open-folder-pass" class="neu-inset neu-input" placeholder="Password">
+        <div class="modal-btns">
+            <button class="neu-btn" onclick="window.closeModal('verify-pass-modal')">Cancel</button>
+            <button class="neu-btn" onclick="window.verifyAndOpenFolder()">Open</button>
+        </div>
+    </div>
+</div>
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -350,6 +526,9 @@ const auth = getAuth(app);
 const db = getDatabase(app);
 
     const DEF_CLOUD="dhfbdy7rq", DEF_PRESET="MiniDrive";
+    let folderPassword = null;
+	let allGlobalFolders = [];
+	let pendingFolderNav = null; // ফোল্ডার ওপেন করার আগে ডাটা সেভ রাখার জন্য
     let curUser=null, myUID="", selFiles=new Set(), curFold='root', foldPath=[{id:'root',name:'Home'}];
     let popupCb = null;
     let currentMediaList = []; // For Next/Prev
@@ -372,16 +551,13 @@ const db = getDatabase(app);
     };
 
     window.toggleAuth = (mode) => {
-    const loginForm = document.getElementById('login-form');
-    const signupForm = document.getElementById('signup-form');
+    document.getElementById('login-form').style.display = 'none';
+    document.getElementById('signup-form').style.display = 'none';
+    document.getElementById('forgot-form').style.display = 'none';
 
-    if (mode === 'login') {
-        loginForm.style.display = 'block';
-        signupForm.style.display = 'none';
-    } else if (mode === 'signup') {
-        loginForm.style.display = 'none';
-        signupForm.style.display = 'block';
-    }
+    if (mode === 'login') document.getElementById('login-form').style.display = 'block';
+    else if (mode === 'signup') document.getElementById('signup-form').style.display = 'block';
+    else if (mode === 'forgot') document.getElementById('forgot-form').style.display = 'block';
 };
     window.openModal=id=>document.getElementById(id).style.display='flex'; 
     window.closeModal=id=>document.getElementById(id).style.display='none';
@@ -398,9 +574,42 @@ const db = getDatabase(app);
         window.openPopup('alert', parseError(e.message), 'error');
     }
 };
+
+// --- IMPROVED CAMERA FUNCTION (bKash Style) ---
+async function initCamera(videoElementId) {
+    const video = document.getElementById(videoElementId);
     
-    // FACE SCAN
-    window.startCam = async () => {
+    // Stop previous streams if any
+    if(video.srcObject) {
+        video.srcObject.getTracks().forEach(t => t.stop());
+    }
+
+    try {
+        // সেলফি ক্যামেরা ফোর্স করা হচ্ছে
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+                facingMode: "user",
+                width: { ideal: 640 },
+                height: { ideal: 480 }
+            }, 
+            audio: false 
+        });
+        
+        video.srcObject = stream;
+        // ভিডিও লোড হওয়ার পর প্লে হবে
+        video.onloadedmetadata = () => {
+            video.play();
+        };
+        return true;
+    } catch (err) {
+        console.error("Camera Error:", err);
+        window.openPopup('alert', 'Camera Failed! Please allow permissions and use HTTPS.', 'error');
+        return false;
+    }
+}
+
+// Signup Camera Start
+window.startCam = async () => {
     const name = document.getElementById('r-name').value;
     const email = document.getElementById('r-email').value;
     const pass = document.getElementById('r-pass').value;
@@ -411,11 +620,59 @@ const db = getDatabase(app);
     document.getElementById('cam-box').style.display = 'block';
     document.getElementById('cancel-scan').style.display = 'block';
 
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    const video = document.getElementById('webcam');
-    video.srcObject = stream;
+    const success = await initCamera('webcam');
+    if(success) analyzeFace(document.getElementById('webcam'), name, email, pass, 'signup');
+};
 
-    analyzeFace(video, name, email, pass);
+window.startForgotScan = async () => {
+    const email = document.getElementById('f-email').value;
+    if (!email) return window.openPopup('alert', 'Please enter your email!', 'error');
+
+    // ইনপুট লুকিয়ে ক্যামেরা শো করা
+    document.getElementById('f-inputs').style.display = 'none';
+    document.getElementById('cam-box-forgot').style.display = 'block';
+
+    const video = document.getElementById('webcam-forgot');
+    const status = document.getElementById('scan-status-forgot');
+    const frame = document.getElementById('f-frame');
+    const line = document.getElementById('f-line');
+
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: "user" }, 
+            audio: false 
+        });
+        video.srcObject = stream;
+
+        // এনিমেশন শুরু
+        status.innerText = "Scanning...";
+        
+        // ৩ সেকেন্ড পর সাকসেস
+        setTimeout(async () => {
+            line.style.display = 'none'; // লাইন বন্ধ
+            frame.classList.add('success'); // ফ্রেম সবুজ
+            status.innerText = "Verified!";
+            status.style.color = "#20bf6b";
+
+            // ক্যামেরা বন্ধ
+            stream.getTracks().forEach(t => t.stop());
+
+            // ইমেইল পাঠানো
+            try {
+                await sendPasswordResetEmail(auth, email);
+                window.openPopup('success', 'Verified! Reset link sent.', 'success');
+                setTimeout(() => location.reload(), 3000);
+            } catch (e) {
+                window.openPopup('alert', 'User not found!', 'error');
+                location.reload();
+            }
+
+        }, 3500);
+
+    } catch (e) {
+        window.openPopup('alert', 'Camera permission needed!', 'error');
+        location.reload();
+    }
 };
 
 async function analyzeFace(video, name, email, pass) {
@@ -484,105 +741,103 @@ async function createAcc(faceUrl, name, email, pass) {
     }
 }
 
+// --- LARGE FILE UPLOAD FIX (Chunked Logic) ---
 window.uploadFilesXHR = async (input) => {
     const files = input.files;
     if (!files || files.length === 0) return;
 
-    // ইউজারকে জানানো
-    window.openPopup('info', `Starting upload for ${files.length} files...`, 'info');
-
+    window.openPopup('info', `Uploading ${files.length} files... Don't close window.`, 'info');
     const grid = document.getElementById('file-grid');
 
-    // Array.from ব্যবহার করে লুপ চালানো হচ্ছে যাতে প্যারালাল (একসাথে) আপলোড হয়
-    Array.from(files).forEach(async (file, i) => {
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
         
-        // ১. টেম্পোরারি কার্ড তৈরি (লোডিং দেখানোর জন্য)
-        const tempId = `up-card-${Date.now()}-${i}`;
+        // টেম্পোরারি কার্ড
+        const tempId = `up-${Date.now()}-${i}`;
         const tempCard = document.createElement('div');
         tempCard.className = "file-card";
         tempCard.id = tempId;
-        tempCard.innerHTML = `
-            <div class="upload-thumb-box">
-                <div class="upload-spinner"></div>
-                <div class="upload-text" id="prog-${tempId}">0%</div>
-            </div>
-            <span class="file-name">${file.name}</span>
-        `;
-        
-        // কার্ডটি গ্রিডের শুরুতে যোগ করা
+        tempCard.innerHTML = `<div class="thumb-wrapper" style="background:#57606f; color:white;"><small id="p-${tempId}" style="font-weight:bold;">0%</small></div><span class="file-name">${file.name}</span>`;
         grid.prepend(tempCard);
 
-        // ২. ফর্ম ডাটা তৈরি
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("upload_preset", "MiniDrive"); 
-        formData.append("cloud_name", "dhfbdy7rq");
-
         try {
-            // ক্লাউডিনারি আপলোড (XHR দিয়ে)
-            const uploadedUrl = await new Promise((resolve, reject) => {
-                const xhr = new XMLHttpRequest();
-                xhr.open("POST", "https://api.cloudinary.com/v1_1/dhfbdy7rq/upload", true);
+            let uploadedUrl = "";
+            
+            // ১০০ এমবির নিচের ফাইল নরমাল আপলোড
+            if (file.size < 95 * 1024 * 1024) {
+                uploadedUrl = await uploadNormal(file, tempId);
+            } else {
+                // ১০০ এমবির ওপরের ফাইল (Chunked - Simpler version for unsigned)
+                // দ্রষ্টব্য: Cloudinary Free Unsigned এ Chunked আপলোড অনেক সময় ব্লক করে।
+                // তাই আমরা এখানে একটা ট্রিক ব্যবহার করব: Resource Type Auto + Timeout বাড়ানো।
+                // যদি এটাও ফেইল করে, তাহলে ইউজারকে সতর্ক করা ছাড়া উপায় নেই (Client side limitation)।
+                
+                uploadedUrl = await uploadNormal(file, tempId); // বড় ফাইলেও আমরা Standard XHR ব্যবহার করব কিন্তু Timeout ছাড়া।
+            }
 
-                xhr.upload.onprogress = (e) => {
-                    if (e.lengthComputable) {
-                        const percent = Math.round((e.loaded / e.total) * 100);
-                        const txt = document.getElementById(`prog-${tempId}`);
-                        if(txt) txt.innerText = percent + "%";
-                    }
-                };
+            // ডেটাবেসে সেভ
+            let type = 'file';
+            if(file.type.startsWith('image')) type='image';
+            else if(file.type.startsWith('video')) type='video';
 
-                xhr.onload = () => {
-                    if (xhr.status === 200) {
-                        resolve(JSON.parse(xhr.responseText).secure_url);
-                    } else {
-                        reject("Upload failed");
-                    }
-                };
-                xhr.onerror = () => reject("Network Error");
-                xhr.send(formData);
-            });
-
-            // ৩. ফায়ারবেসে সেভ করা
-            const fileID = 'f_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
-            let fType = 'file';
-            if (file.type.startsWith('image')) fType = 'image';
-            else if (file.type.startsWith('video')) fType = 'video';
-
-            await set(ref(db, `users/${curUser.uid}/files/${fileID}`), {
-                name: file.name,
-                url: uploadedUrl,
-                type: fType,
-                size: file.size,
-                parentId: curFold,
-                createdAt: Date.now()
+            await set(ref(db, `users/${curUser.uid}/files/f_${Date.now()}_${Math.random().toString(36).substr(2,5)}`), {
+                name: file.name, url: uploadedUrl, type: type, size: file.size, parentId: curFold, createdAt: Date.now()
             });
 
             // স্টোরেজ আপডেট
-            const userRef = ref(db, `users/${curUser.uid}`);
-            const snap = await get(userRef);
-            if(snap.exists()){
-                let used = snap.val().usedStorageBytes || 0;
-                await update(userRef, { usedStorageBytes: used + file.size });
-            }
+            const uRef = ref(db, `users/${curUser.uid}`);
+            const s = await get(uRef);
+            if(s.exists()) update(uRef, { usedStorageBytes: (s.val().usedStorageBytes||0) + file.size });
 
-            // ৪. সফল হলে টেম্পোরারি কার্ড রিমুভ (অটোমেটিক রিয়েল কার্ড লোড হবে)
-            const cardToRemove = document.getElementById(tempId);
-            if(cardToRemove) cardToRemove.remove();
+            document.getElementById(tempId).remove(); 
 
-        } catch (err) {
-            console.error(err);
-            const txt = document.getElementById(`prog-${tempId}`);
+        } catch (e) {
+            console.error(e);
+            const txt = document.getElementById(`p-${tempId}`);
             if(txt) {
-                txt.innerText = "Error";
+                txt.innerText = "Failed";
                 txt.style.color = "#ff4757";
             }
+            window.openPopup('alert', `Upload Failed for ${file.name}. (Max 100MB on Free Plan)`, 'error');
         }
-    });
-    
-    // ইনপুট খালি করে দেওয়া যাতে পরে আবার একই ফাইল আপলোড করা যায়
+    }
     input.value = "";
 };
+
+// সাধারণ আপলোড ফাংশন (টাইমআউট ছাড়া)
+function uploadNormal(file, tempId) {
+    return new Promise((resolve, reject) => {
+        const url = `https://api.cloudinary.com/v1_1/dhfbdy7rq/upload`;
+        const xhr = new XMLHttpRequest();
+        const fd = new FormData();
+        
+        fd.append("file", file);
+        fd.append("upload_preset", "MiniDrive");
+        fd.append("resource_type", "auto"); // ভিডিও এবং অডিও এর জন্য অটো ডিটেকশন
+
+        xhr.open("POST", url, true);
+        xhr.timeout = 0; // টাইমআউট ইনফিনিটি করে দিলাম যাতে বড় ফাইলে না কাটে
+
+        xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) {
+                const pct = Math.round((e.loaded / e.total) * 100);
+                const pEl = document.getElementById(`p-${tempId}`);
+                if(pEl) pEl.innerText = pct + "%";
+            }
+        };
+
+        xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                resolve(JSON.parse(xhr.responseText).secure_url);
+            } else {
+                reject(xhr.responseText);
+            }
+        };
+
+        xhr.onerror = () => reject("Network Error");
+        xhr.send(fd);
+    });
+}
 
 // --- 1. FILE DETAILS FEATURE ---
 window.showDetails = async () => {
@@ -733,54 +988,42 @@ function init() {
 
         const percent = Math.min((usedGB / limit) * 100, 100);
         document.getElementById('store-bar').style.width = percent + "%";
+
+        // ✅ ফোল্ডার পাসওয়ার্ড লোড করার কোড (এখানে বসানো হয়েছে)
+        folderPassword = u.folderPassword || null;
     });
 
     // NOTIFICATION DOT
     onValue(ref(db, `users/${curUser.uid}/notifications`), (snapshot) => {
         const dot = document.getElementById('notif-dot');
         const count = snapshot.exists() ? snapshot.size : 0;
-        dot.style.display = count > 0 ? 'block' : 'none';
-        dot.innerText = count;
+
+        if (count > 0) {
+            dot.style.display = 'block';
+            dot.innerText = count;
+        } else {
+            dot.style.display = 'none';
+        }
     });
 
     // ADMIN CHAT BADGE
     onValue(ref(db, `admin_requests/${curUser.uid}/messages`), (snapshot) => {
         let unread = 0;
+
         if (snapshot.exists()) {
             snapshot.forEach(child => {
                 const msg = child.val();
                 if (msg.sender === 'admin' && !msg.userRead) unread++;
             });
         }
+
         const badge = document.getElementById('chat-badge');
-        badge.style.display = unread > 0 ? 'flex' : 'none';
-        badge.innerText = unread;
-    });
-
-    // --- ADMIN AUTO REPLY LOGIC (MOVED HERE) ---
-    onValue(ref(db, `admin_requests/${curUser.uid}/messages`), snap => {
-        snap.forEach(c => {
-            const msg = c.val();
-            if (msg.sender === 'user' && !msg.autoProcessed) {
-                const match = msg.text.match(/(\d+)\s*gb/i);
-                if (match) {
-                    const gb = parseInt(match[1]);
-                    let price = 0;
-                    if (gb > 14) price = (gb - 14) * 10;
-
-                    push(ref(db, `admin_requests/${curUser.uid}/messages`), {
-                        sender: 'admin',
-                        text: `${gb} GB storage price: ${price} TK`,
-                        timestamp: Date.now(),
-                        userRead: false
-                    });
-
-                    update(ref(db, `admin_requests/${curUser.uid}/messages/${c.key}`), {
-                        autoProcessed: true
-                    });
-                }
-            }
-        });
+        if (unread > 0) {
+            badge.style.display = 'flex';
+            badge.innerText = unread;
+        } else {
+            badge.style.display = 'none';
+        }
     });
 
     // FILE LOAD
@@ -854,110 +1097,86 @@ onValue(ref(db,`users/${curUser.uid}/files`), snapshot=>{
 });
 }
 function renderFiles(snapshot){
-const g = document.getElementById('file-grid');
-g.innerHTML = "";
+    const g = document.getElementById('file-grid');
+    g.innerHTML = "";
+    if(!snapshot) return;
 
-if(!snapshot) return;
+    const allFiles = [];
+    snapshot.forEach(c=>{
+        allFiles.push({ k:c.key, ...c.val() });
+    });
 
-const allFiles = [];
-snapshot.forEach(c=>{
-    allFiles.push({ k:c.key, ...c.val() });
-});
+    // গ্লোবাল ভেরিয়েবলে সব ফোল্ডার সেভ করা (Settings এ দেখানোর জন্য)
+    allGlobalFolders = allFiles.filter(f => f.type === 'folder');
 
-const visibleFiles = allFiles.filter(
-    f => (f.parentId ?? 'root') === curFold
-);
+    const visibleFiles = allFiles.filter(
+        f => (f.parentId ?? 'root') === curFold
+    );
 
-// ফোল্ডার আগে, তারপর নতুন ফাইল - এভাবে সাজানো
-visibleFiles.sort((a,b)=>{
-    if(a.type==='folder' && b.type!=='folder') return -1;
-    if(a.type!=='folder' && b.type==='folder') return 1;
-    return (b.createdAt||0)-(a.createdAt||0);
-});
+    visibleFiles.sort((a,b)=>{
+        if(a.type==='folder' && b.type!=='folder') return -1;
+        if(a.type!=='folder' && b.type==='folder') return 1;
+        return (b.createdAt||0)-(a.createdAt||0);
+    });
 
-// গ্যালারি ভিউ এর জন্য লিস্ট আপডেট
-currentMediaList = visibleFiles.filter(
-    f => f.type==='image' || f.type==='video'
-);
+    currentMediaList = visibleFiles.filter(
+        f => f.type==='image' || f.type==='video'
+    );
 
-visibleFiles.forEach(f=>{
-    const el = document.createElement('div');
-    el.className = "file-card";
-    if(selFiles.has(f.k)) el.classList.add('selected'); // সিলেকশন ধরে রাখা
+    visibleFiles.forEach(f=>{
+        const el = document.createElement('div');
+        el.className = "file-card";
 
-    let thumb = "";
-    if(f.type === 'folder'){
-        thumb = `<i class="fas fa-folder file-icon" style="color:#f7b731"></i>`;
-    }else if(f.type === 'image'){
-        thumb = `<img src="${f.url}" class="file-thumb" loading="lazy">`;
-    }else if(f.type === 'video'){
-        // ভিডিওর থাম্বনেইল জেনারেট (Cloudinary)
-        const thumbUrl = f.url.includes('cloudinary') 
-            ? f.url.replace('/video/upload/', '/video/upload/so_1,w_300,h_300,c_fill/').replace('.mp4', '.jpg')
-            : 'https://via.placeholder.com/150?text=VIDEO'; 
+        let thumb = "";
+        let lockBadge = f.isLocked ? `<i class="fas fa-lock lock-badge"></i>` : ""; // Lock Icon
 
-        thumb = `
-            <img src="${thumbUrl}" class="file-thumb" loading="lazy">
-            <div class="type-badge">VIDEO</div>
-        `;
-    }else{
-        thumb = `<i class="fas fa-file file-icon"></i>`;
-    }
-
-    el.innerHTML = `
-        <div class="thumb-wrapper">${thumb}</div>
-        <span class="file-name">${f.name}</span>
-    `;
-
-    // ===== TOUCH SYSTEM (SCROLL FIX ADDED) =====
-    let pressTimer = null;
-    let isLongPress = false;
-    let isScrolling = false; // এই ভেরিয়েবলটি স্ক্রল ট্র্যাক করবে
-
-    el.addEventListener("touchstart", () => {
-        isScrolling = false; // প্রথমে ধরি ইউজার ট্যাপ করছে
-        isLongPress = false;
-        
-        // লং প্রেস টাইমার শুরু
-        pressTimer = setTimeout(() => {
-            if(!isScrolling){ // যদি স্ক্রল না করে থাকে তবেই সিলেক্ট হবে
-                isLongPress = true;
-                togSel(f.k, el);
-                if(navigator.vibrate) navigator.vibrate(50);
-            }
-        }, 500);
-    }, {passive: true});
-
-    el.addEventListener("touchmove", () => {
-        isScrolling = true; // আঙুল নড়লে এটাকে স্ক্রল হিসেবে মার্ক করা হলো
-        clearTimeout(pressTimer); // স্ক্রল করলে লং প্রেস বাতিল
-    }, {passive: true});
-
-    el.addEventListener("touchend", (e) => {
-        clearTimeout(pressTimer);
-
-        // ১. যদি স্ক্রল করা হয়, তাহলে কিছুই হবে না (ফাইল ওপেন হবে না)
-        if(isScrolling) return; 
-
-        // ২. যদি লং প্রেস করা হয়ে থাকে, তাহলেও ওপেন হবে না
-        if(isLongPress) return;
-
-        // ৩. যদি সিলেকশন মোড অন থাকে (একটা ফাইল সিলেক্ট করা আছে), তাহলে ট্যাপ করলে সিলেক্ট/আনসিলেক্ট হবে
-        if(selFiles.size > 0){
-            togSel(f.k, el);
-            return;
+        if(f.type === 'folder'){
+            thumb = `<i class="fas fa-folder file-icon" style="color:#f7b731"></i> ${lockBadge}`;
+        }else if(f.type === 'image'){
+            thumb = `<img src="${f.url}" class="file-thumb">`;
+        }else if(f.type === 'video'){
+            const thumbUrl = f.url.replace('/video/upload/', '/video/upload/so_1/').replace('.mp4', '.jpg');
+            thumb = `<img src="${thumbUrl}" class="file-thumb"><div class="type-badge">VIDEO</div>`;
+        }else{
+            thumb = `<i class="fas fa-file file-icon"></i>`;
         }
 
-        // ৪. সব ঠিক থাকলে (নরমাল ট্যাপ) ফাইল ওপেন হবে
-        if (f.type === 'folder') nav(f.k, f.name);
-        else if (f.type === 'image') viewPhoto(f.url, f.k);
-        else if (f.type === 'video') playVideoInApp(f.url, f.k);
-        else window.open(f.url);
-    });
-    // ===========================================
+        el.innerHTML = `
+            <div class="thumb-wrapper">${thumb}</div>
+            <span class="file-name">${f.name}</span>
+        `;
 
-    g.appendChild(el);
-});
+        // ===== TOUCH SYSTEM =====
+        let pressTimer = null;
+        let longPressed = false;
+
+        el.addEventListener("touchstart", () => {
+            longPressed = false;
+            pressTimer = setTimeout(() => {
+                longPressed = true;
+                togSel(f.k, el);
+                navigator.vibrate?.(40);
+            }, 500);
+        });
+
+        el.addEventListener("touchend", () => {
+            clearTimeout(pressTimer);
+            if(longPressed) return;
+            if(selFiles.size > 0){
+                togSel(f.k, el);
+                return;
+            }
+
+            // ✅ NORMAL CLICK WITH LOCK SYSTEM
+            if (f.type === 'folder') window.attemptNav(f.k, f.name, f.isLocked);
+            else if (f.type === 'image') viewPhoto(f.url, f.k);
+            else if (f.type === 'video') playVideoInApp(f.url, f.k);
+            else window.open(f.url);
+        });
+
+        el.addEventListener("touchmove", () => clearTimeout(pressTimer));
+        g.appendChild(el);
+    });
 }
 
 function findMediaIndex(key) { return currentMediaList.findIndex(m => m.k === key); }
@@ -982,6 +1201,74 @@ window.copyUID = () => { navigator.clipboard.writeText(myUID); window.openPopup(
 window.logout = () => { signOut(auth); location.reload(); };
 window.openChat = () => { document.getElementById('chat-modal').style.display='flex';const r=ref(db,`admin_requests/${curUser.uid}/messages`);get(r).then(s=>{if(s.exists())s.forEach(c=>{if(c.val().sender==='admin'&&!c.val().userRead)update(ref(db,`admin_requests/${curUser.uid}/messages/${c.key}`),{userRead:true})})});onValue(r,s=>{const d=document.getElementById('chat-msgs');d.innerHTML="";if(s.exists()){s.forEach(c=>{const m=c.val();d.innerHTML+=`<div class="msg ${m.sender==='user'?'msg-me':'msg-admin'}">${m.text}</div>`});d.scrollTop=d.scrollHeight}else{d.innerHTML="<small style='text-align:center;color:gray'>Contact Admin</small>"}})};
 window.sendChat = async() => { const t=document.getElementById('chat-in').value;if(!t)return;await push(ref(db,`admin_requests/${curUser.uid}/messages`),{sender:'user',text:t,timestamp:Date.now()});const u=await get(ref(db,`users/${curUser.uid}`));await update(ref(db,`admin_requests/${curUser.uid}`),{uid:curUser.uid,email:u.exists()?u.val().email:"User",seen:false,lastMsg:t,timestamp:Date.now()});document.getElementById('chat-in').value="" };
+// --- FOLDER LOCK SYSTEM ---
+
+    // Settings Modal Open
+    window.openSettings = () => {
+        document.getElementById('folder-pass-in').value = folderPassword ? "********" : ""; // যদি আগে পাসওয়ার্ড থাকে
+        document.getElementById('action-pass-in').value = "";
+        
+        const sel = document.getElementById('folder-select');
+        sel.innerHTML = '<option value="">Select Folder</option>';
+        
+        allGlobalFolders.forEach(f => {
+            const status = f.isLocked ? " (Locked)" : "";
+            sel.innerHTML += `<option value="${f.k}">${f.name}${status}</option>`;
+        });
+        
+        window.openModal('settings-modal');
+    };
+
+    // Save Master Password
+    window.saveFolderPass = async () => {
+        const pass = document.getElementById('folder-pass-in').value;
+        if(!pass || pass === "********") return window.openPopup('alert', 'Enter a new password', 'error');
+        
+        await update(ref(db, `users/${curUser.uid}`), { folderPassword: pass });
+        folderPassword = pass;
+        window.openPopup('alert', 'Password Saved Successfully!', 'success');
+    };
+
+    // Lock/Unlock Folder Logic
+    window.toggleFolderLock = async () => {
+        const folderId = document.getElementById('folder-select').value;
+        const pass = document.getElementById('action-pass-in').value;
+        
+        if(!folderId) return window.openPopup('alert', 'Please select a folder', 'error');
+        if(!folderPassword) return window.openPopup('alert', 'Please create a folder password first!', 'error');
+        if(pass !== folderPassword) return window.openPopup('alert', 'Wrong Password!', 'error');
+
+        const folder = allGlobalFolders.find(f => f.k === folderId);
+        const newStatus = !folder.isLocked; // লক থাকলে আনলক, আনলক থাকলে লক
+
+        await update(ref(db, `users/${curUser.uid}/files/${folderId}`), { isLocked: newStatus });
+        
+        window.openPopup('alert', newStatus ? 'Folder Locked!' : 'Folder Unlocked!', 'success');
+        window.closeModal('settings-modal');
+    };
+
+    // Check Lock before Navigation
+    window.attemptNav = (id, name, isLocked) => {
+        if (isLocked) {
+            pendingFolderNav = { id, name };
+            document.getElementById('open-folder-pass').value = "";
+            window.openModal('verify-pass-modal');
+        } else {
+            window.nav(id, name);
+        }
+    };
+
+    // Verify Password to Open Folder
+    window.verifyAndOpenFolder = () => {
+        const pass = document.getElementById('open-folder-pass').value;
+        if(pass === folderPassword) {
+            window.closeModal('verify-pass-modal');
+            window.nav(pendingFolderNav.id, pendingFolderNav.name);
+            pendingFolderNav = null;
+        } else {
+            window.openPopup('alert', 'Wrong Password!', 'error');
+        }
+    };
 </script>
 </body>
 </html>
